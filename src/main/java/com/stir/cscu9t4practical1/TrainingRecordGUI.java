@@ -22,7 +22,7 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 	private JTextField pause = new JTextField(4);
 	private JTextField terrain = new JTextField(4);
 	private JTextField tempo = new JTextField(4);
-	private JTextField swimtype = new JTextField(4);
+	private JTextField swimtype = new JTextField(7);
 
 	private JLabel labn = new JLabel(" Name:");
 	private JLabel labd = new JLabel(" Day:");
@@ -40,8 +40,9 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 	private JLabel swimtypelabel = new JLabel(" Swim Type:");
 
 	private JButton addR = new JButton("Add");
-	private JButton lookUpByDate = new JButton("Look Up");
-	private JButton findAllByDate = new JButton("Look Up All");
+	private JButton lookupbydate = new JButton("Look Up");
+	private JButton findallbydate = new JButton("Look Up All");
+	private JButton removebutton = new JButton("Remove Entry");
 
 	final String RUNNING = "Run";
 	final String SPRINTING = "Sprint";
@@ -126,10 +127,14 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 		outputArea.setEditable(false);
 		add(addR);
 		addR.addActionListener(this);
-		add(lookUpByDate);
-		lookUpByDate.addActionListener(this);
-		add(findAllByDate);
-		findAllByDate.addActionListener(this);
+		add(lookupbydate);
+		lookupbydate.addActionListener(this);
+		add(findallbydate);
+		findallbydate.addActionListener(this);
+		add(removebutton);
+		removebutton.addActionListener(this);
+
+		toggleButtons();
 
 		setSize(830, 210);
 		setVisible(true);
@@ -146,10 +151,10 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 		if (event.getSource() == addR) {
 			message = addEntry("generic");
 		}
-		if (event.getSource() == lookUpByDate) {
+		if (event.getSource() == lookupbydate) {
 			message = lookupEntry(false);
 		}
-		if (event.getSource() == findAllByDate) {
+		if (event.getSource() == findallbydate) {
 			message = lookupEntry(true);
 		}
 		if (event.getSource() == typeList) {
@@ -165,6 +170,10 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 			}
 			return;
 		}
+		if (event.getSource() == removebutton) {
+			message = removeEntry();
+		}
+
 		outputArea.setText(message);
 		blankDisplay();
 	} // actionPerformed
@@ -176,48 +185,103 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 		String message = "Record added\n";
 		System.out.println("Adding " + what + " entry to the records");
 		String n = name.getText();
-		int m = Integer.parseInt(month.getText());
-		int d = Integer.parseInt(day.getText());
-		int y = Integer.parseInt(year.getText());
-		float km = java.lang.Float.parseFloat(dist.getText());
-		int h = Integer.parseInt(hours.getText());
-		int mm = Integer.parseInt(mins.getText());
-		int s = Integer.parseInt(secs.getText());
+		int m = tryParse(month.getText());
+		int d = tryParse(day.getText());
+		int y = tryParse(year.getText());
+
+		// valid input here is required
+		if (m == -1 || d == -1 || y == -1 || n.isEmpty()) {
+			return "Failed: invalid input";
+		}
+
+		float km = tryParseFloat(dist.getText());
+		int h = tryParse(hours.getText(), 0);
+		int mm = tryParse(mins.getText(), 0);
+		int s = tryParse(secs.getText(), 0);
+
+		// No kilometer value added, or no time entered
+		if (km == -1 || h + mm + s == 0) {
+			return "Failed: invalid input";
+		}
 
 		Entry e;
 
 		if (typeOf.equals(RUNNING)) {
-			int lapsText = Integer.parseInt(laps.getText());
+			int lapsText = tryParse(laps.getText(), 1);
 			e = new RunEntry(n, d, m, y, h, mm, s, km, lapsText);
 		}
 
 		else if (typeOf.equals(SPRINTING)) {
-			int lapsText = Integer.parseInt(laps.getText());
-			int recoveryText = Integer.parseInt(pause.getText());
+			int lapsText = tryParse(laps.getText(), 1);
+			int recoveryText = tryParse(pause.getText(), 0);
 			e = new SprintEntry(n, d, m, y, h, mm, s, km, lapsText, recoveryText);
 		}
 
 		else if (typeOf.equals(SWIMMING)) {
 			String swimTypeText = swimtype.getText();
+			if (swimTypeText.isEmpty()) {
+				swimTypeText = "indoors";
+			}
 			e = new SwimEntry(n, d, m, y, h, mm, s, km, swimTypeText);
 		}
 
 		else if (typeOf.equals(CYCLING)) {
 			String terrainText = terrain.getText();
+			if (terrainText.isEmpty()) {
+				terrainText = "(Not specified)";
+			}
 			String tempoText = tempo.getText();
+			if (tempoText.isEmpty()) {
+				tempoText = "(Not specified)";
+			}
 			e = new CycleEntry(n, d, m, y, h, mm, s, km, terrainText, tempoText);
 		} else {
 			e = new Entry(n, d, m, y, h, mm, s, km); // this should never happen, but Java made me :(
 		}
 
-		myAthletes.addEntry(e);
+		if (!myAthletes.addEntry(e)) {
+			return "Failed: record already exists";
+		}
+
+		toggleButtons();
+		return message;
+	}
+
+	public String removeEntry() {
+
+		String message;
+
+		String n = name.getText();
+		int m = tryParse(month.getText());
+		int d = tryParse(day.getText());
+		int y = tryParse(year.getText());
+
+		// valid input here is required
+		if (m == -1 || d == -1 || y == -1 || n.isEmpty()) {
+			return "Failed: invalid input";
+		}
+
+		if (myAthletes.removeEntry(d, m, y, n)) {
+			message = "Entry removed successfully";
+			toggleButtons();
+		} else {
+			message = "Entry not found";
+		}
+
 		return message;
 	}
 
 	public String lookupEntry(boolean all) {
-		int m = Integer.parseInt(month.getText());
-		int d = Integer.parseInt(day.getText());
-		int y = Integer.parseInt(year.getText());
+
+		int m = tryParse(month.getText());
+		int d = tryParse(day.getText());
+		int y = tryParse(year.getText());
+
+		// valid input here is required
+		if (m == -1 || d == -1 || y == -1) {
+			return "Failed: invalid input";
+		}
+
 		outputArea.setText("looking up record ...");
 		String message;
 		if (!all) {
@@ -291,6 +355,62 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 
 		setupExtras(false, false, true, true, false, false);
 
+	}
+
+	public int tryParse(String input, int defaultValue) {
+
+		int returnValue;
+
+		if (input.isEmpty()) {
+			return defaultValue;
+		}
+
+		try {
+			returnValue = Integer.parseInt(input);
+		} catch (NumberFormatException e) {
+			returnValue = defaultValue;
+		}
+
+		return returnValue;
+
+	}
+
+	public int tryParse(String input) {
+
+		if (!input.isEmpty()) {
+			try {
+				int returnValue = Integer.parseInt(input);
+				return Math.abs(returnValue);
+			} catch (NumberFormatException e) {
+			}
+		}
+
+		return -1;
+	}
+
+	public float tryParseFloat(String input) {
+
+		if (!input.isEmpty()) {
+			try {
+				float returnValue = java.lang.Float.parseFloat(input);
+				return Math.abs(returnValue);
+			} catch (NumberFormatException e) {
+			}
+		}
+
+		return -1;
+	}
+
+	public void toggleButtons() {
+		if (myAthletes.getNumberOfEntries() == 0) {
+			removebutton.setEnabled(false);
+			lookupbydate.setEnabled(false);
+			findallbydate.setEnabled(false);
+		} else {
+			removebutton.setEnabled(true);
+			lookupbydate.setEnabled(true);
+			findallbydate.setEnabled(true);
+		}
 	}
 
 	// Fills the input fields on the display for testing purposes only
