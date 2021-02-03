@@ -34,7 +34,7 @@ public class TrainingRecord {
 		while (iter.hasNext()) {
 			Entry current = iter.next();
 			if (current.getDay() == d && current.getMonth() == m && current.getYear() == y)
-				result += current.getEntry() + "\n";
+				result += current.getEntry();
 		}
 		if (result.isEmpty()) {
 			result = "No entries found";
