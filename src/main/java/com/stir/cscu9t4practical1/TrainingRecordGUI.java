@@ -55,6 +55,7 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 	private TrainingRecord myAthletes = new TrainingRecord();
 
 	private JTextArea outputArea = new JTextArea(5, 65);
+	JScrollPane scrollArea = new JScrollPane (outputArea);
 
 	public static void main(String[] args) {
 		TrainingRecordGUI applic = new TrainingRecordGUI();
@@ -123,8 +124,12 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 		swimtypelabel.setVisible(false);
 		swimtype.setVisible(false);
 
-		add(outputArea);
+		//add(outputArea);
 		outputArea.setEditable(false);
+		add(scrollArea);
+		//scrollArea.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		scrollArea.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		
 		add(addR);
 		addR.addActionListener(this);
 		add(lookupbydate);
@@ -193,7 +198,7 @@ public class TrainingRecordGUI extends JFrame implements ActionListener {
 		if (m == -1 || d == -1 || y == -1 || n.isEmpty()) {
 			return "Failed: invalid input";
 		}
-
+		
 		float km = tryParseFloat(dist.getText());
 		int h = tryParse(hours.getText(), 0);
 		int mm = tryParse(mins.getText(), 0);
